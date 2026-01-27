@@ -6,84 +6,84 @@ use spin_sdk::{
     },
     http_component,
 };
+use std::mem;
 use url::Url;
 mod s3;
 
 #[http_component]
 async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam) {
-    let borrowed_headers = &request.headers().entries();
-    let borrowed_method = &request.method();
+    let headers = &request.headers().entries();
+    //let borrowed_headers = &request.headers().entries();
+    //let borrowed_method = &request.method();
     let url_vec = vec![
         "https://us-east-1.linodeobjects.com",
         "https://us-southeast-1.linodeobjects.com",
     ];
     let region_vec = vec!["us-east-1", "us-southeast-1"];
-    for (url_i, region_item) in url_vec.iter().zip(region_vec.iter()) {
-        let headers = borrowed_headers;
-        match borrowed_method {
-            Method::Put => {
-                let Some(url) = headers.iter().find_map(|(k, v)| {
-                    (k == "url")
-                        .then_some(v)
-                        .and_then(|v| std::str::from_utf8(v).ok())
-                    //.and_then(|v| Url::parse(v).ok())
-                }) else {
-                    bad_request(response_out);
-                    return;
-                };
-                let uri_components = s3::url_parse(s3::get_url_parse(url));
-                let path_filename =
-                    format!("{}{}", uri_components.re_path, uri_components.re_filename);
-                let url_item = format!("{}{}", url_i, path_filename);
-                let signed_url = s3::sign(
-                    url_item.to_string(),
-                    &region_item,
-                    "example-bucket-natle",
-                    String::from("PUT"),
-                );
+    //for (url_i, region_item) in url_vec.iter().zip(region_vec.iter()) {
+    match request.method() {
+        Method::Put => {
+            let Some(url) = headers.iter().find_map(|(k, v)| {
+                (k == "url")
+                    .then_some(v)
+                    .and_then(|v| std::str::from_utf8(v).ok())
+                //.and_then(|v| Url::parse(v).ok())
+            }) else {
+                bad_request(response_out);
+                return;
+            };
+            let uri_components = s3::url_parse(s3::get_url_parse(url));
+            let path_filename = format!("{}{}", uri_components.re_path, uri_components.re_filename);
+            let url_item = format!("{}{}", url_i, path_filename);
+            let signed_url = s3::sign(
+                url_item.to_string(),
+                &region_item,
+                "example-bucket-natle",
+                String::from("PUT"),
+            );
 
-                match replicate_to_obj_endpoint(request, signed_url).await {
-                    Ok((request_copy, incoming_response)) => {
-                        let mut incoming_response_body = incoming_response.take_body_stream();
+            match replicate_to_obj_endpoint(request, signed_url).await {
+                Ok((request_copy, incoming_response)) => {
+                    let mut incoming_response_body = incoming_response.take_body_stream();
 
-                        let outgoing_response = OutgoingResponse::new(
-                            Headers::from_list(
-                                &headers
-                                    .clone()
-                                    .into_iter()
-                                    .filter(|(k, _)| k == "content-type")
-                                    .collect::<Vec<_>>(),
-                            )
-                            .unwrap(),
-                        );
+                    let outgoing_response = OutgoingResponse::new(
+                        Headers::from_list(
+                            &headers
+                                .clone()
+                                .into_iter()
+                                .filter(|(k, _)| k == "content-type")
+                                .collect::<Vec<_>>(),
+                        )
+                        .unwrap(),
+                    );
 
-                        let mut outgoing_response_body = outgoing_response.take_body();
+                    let mut outgoing_response_body = outgoing_response.take_body();
 
-                        response_out.set(outgoing_response);
+                    response_out.set(outgoing_response);
 
-                        let response_copy = async move {
-                            while let Some(chunk) = incoming_response_body.next().await {
-                                outgoing_response_body.send(chunk?).await?;
-                            }
-                            Ok::<_, anyhow::Error>(())
-                        };
-
-                        let (request_copy, response_copy) =
-                            future::join(request_copy, response_copy).await;
-
-                        if let Err(e) = request_copy.and(response_copy) {
-                            eprintln!("error piping to and from {url}: {e}");
+                    let response_copy = async move {
+                        while let Some(chunk) = incoming_response_body.next().await {
+                            outgoing_response_body.send(chunk?).await?;
                         }
-                    }
-                    Err(e) => {
-                        eprintln!("Error sending outgoing request to {url}: {e}");
-                        server_error(response_out);
+                        Ok::<_, anyhow::Error>(())
+                    };
+
+                    let (request_copy, response_copy) =
+                        future::join(request_copy, response_copy).await;
+
+                    if let Err(e) = request_copy.and(response_copy) {
+                        eprintln!("error piping to and from {url}: {e}");
                     }
                 }
+                Err(e) => {
+                    eprintln!("Error sending outgoing request to {url}: {e}");
+                    server_error(response_out);
+                }
             }
-            _ => method_not_allowed(response_out),
         }
+        _ => method_not_allowed(response_out),
     }
+    //}
 }
 
 async fn replicate_to_obj_endpoint(
