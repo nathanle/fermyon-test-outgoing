@@ -11,10 +11,12 @@ use url::Url;
 mod s3;
 
 #[http_component]
-async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam) {
+//async fn handle_request(request: IncomingRequest, response_out: &mut ResponseOutparam) {
+async fn handle_request(request: IncomingRequest) {
     let headers = &request.headers().entries();
     //let borrowed_headers = &request.headers().entries();
     let borrowed_method = &request.method();
+    //let owned_response_out = response_out;
     let url_vec = vec![
         "https://us-east-1.linodeobjects.com",
         "https://us-southeast-1.linodeobjects.com",
@@ -29,7 +31,7 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
                         .and_then(|v| std::str::from_utf8(v).ok())
                     //.and_then(|v| Url::parse(v).ok())
                 }) else {
-                    bad_request(&response_out);
+                    //bad_request(&response_out);
                     return;
                 };
                 let uri_components = s3::url_parse(s3::get_url_parse(url));
@@ -46,7 +48,6 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
                 match replicate_to_obj_endpoint(&request, signed_url).await {
                     Ok((request_copy, incoming_response)) => {
                         let mut incoming_response_body = incoming_response.take_body_stream();
-
                         let outgoing_response = OutgoingResponse::new(
                             Headers::from_list(
                                 &headers
@@ -60,7 +61,8 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
 
                         let mut outgoing_response_body = outgoing_response.take_body();
 
-                        response_out.by_ref().set(outgoing_response);
+                        //owned_response_out.set(outgoing_response);
+                        //
 
                         let response_copy = async move {
                             while let Some(chunk) = incoming_response_body.next().await {
@@ -78,11 +80,10 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
                     }
                     Err(e) => {
                         eprintln!("Error sending outgoing request to {url}: {e}");
-                        server_error(&response_out);
+                        //server_error(&response_out);
                     }
                 }
-            }
-            _ => method_not_allowed(&response_out),
+            } //_ => method_not_allowed(&response_out),
         }
     }
 }
