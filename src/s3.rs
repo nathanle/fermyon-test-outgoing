@@ -48,16 +48,16 @@ pub fn get_captures(re: Regex, data: &str) -> regex::Captures<'_> {
     }
 }
 
-pub fn url_parse(url: Url) -> UrlComponents {
+pub fn url_parse(url: Url) -> Option<UrlComponents> {
     let re = get_url_regex(r"^([a-z][a-z0-9+\-.]*://([^/?#]+)?)?([a-z0-9\-._~%!$&'()*+,;=:@/]*)");
     let path_re = get_url_regex(r"^([/\S]*[/]{1})(.*)");
     let u = url.to_owned().to_string();
     let cap = get_captures(re.clone(), &u);
     let path_cap = get_captures(path_re.clone(), cap.get(3).map_or("", |m| m.as_str()));
-    UrlComponents {
+    Some(UrlComponents {
         re_filename: String::from(path_cap.get(2).map_or("", |m| m.as_str())),
         re_path: String::from(path_cap.get(1).map_or("", |m| m.as_str())),
-    }
+    })
 }
 
 pub fn get_signed_url(
