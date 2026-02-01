@@ -40,8 +40,10 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
                 return;
             };
 
-            let uri_components = s3::url_parse(s3::get_url_parse(url.to_str()));
-            let path_filename = format!("{}{}", uri_components.re_path, uri_components.re_filename);
+            println!("{:#?}", url);
+
+            //let uri_components = s3::url_parse(url);
+            let path_filename = format!("{}{}", url.re_path, url.re_filename);
             let url_item = format!("{}{}", url_i, path_filename);
             let signed_url = s3::sign(
                 url_item.to_string(),
@@ -80,11 +82,11 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
                         future::join(request_copy, response_copy).await;
 
                     if let Err(e) = request_copy.and(response_copy) {
-                        eprintln!("error piping to and from {url}: {e}");
+                        eprintln!("error piping to and from {:?}: {e}", url);
                     }
                 }
                 Err(e) => {
-                    eprintln!("Error sending outgoing request to {url}: {e}");
+                    eprintln!("Error sending outgoing request to {:?}: {e}", url);
                     server_error(response_out);
                 }
             }

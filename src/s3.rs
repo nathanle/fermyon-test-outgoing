@@ -16,6 +16,7 @@ const SECRET: &'static str = env!(
     "AKAMAI_SECRET_ACCESS_KEY not set at compile time"
 );
 
+#[derive(Debug)]
 pub struct UrlComponents {
     pub re_filename: String,
     pub re_path: String,
@@ -155,7 +156,7 @@ pub fn sign(assem_url: String, region: &str, bucket_name: &str, method: String) 
     let signed_url: Url = if method == "GET" {
         let s = get_signed_url(
             assem_url,
-            url_components.re_filename,
+            url_components.unwrap().re_filename,
             bucket_name.to_string(),
             region.to_string(),
             &credentials,
@@ -164,7 +165,7 @@ pub fn sign(assem_url: String, region: &str, bucket_name: &str, method: String) 
     } else if method == "PUT" {
         let s = put_signed_url(
             assem_url,
-            url_components.re_filename,
+            url_components.unwrap().re_filename,
             bucket_name.to_string(),
             region.to_string(),
             &credentials,
@@ -173,7 +174,7 @@ pub fn sign(assem_url: String, region: &str, bucket_name: &str, method: String) 
     } else if method == "DELETE" {
         let s = delete_signed_url(
             assem_url,
-            url_components.re_filename,
+            url_components.unwrap().re_filename,
             bucket_name.to_string(),
             region.to_string(),
             &credentials,
@@ -182,7 +183,7 @@ pub fn sign(assem_url: String, region: &str, bucket_name: &str, method: String) 
     } else {
         let s = get_signed_url(
             assem_url,
-            url_components.re_filename,
+            url_components.unwrap().re_filename,
             bucket_name.to_string(),
             region.to_string(),
             &credentials,
