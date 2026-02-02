@@ -99,6 +99,7 @@ async fn replicate_to_obj_endpoint(
     incoming_request: IncomingRequest,
     url: Url,
 ) -> anyhow::Result<(impl Future<Output = anyhow::Result<()>>, IncomingResponse)> {
+    println!("URL FOR REQUEST: {:?}", url);
     let outgoing_request = OutgoingRequest::new(Headers::new());
     outgoing_request.set_method(&Method::Put).unwrap();
     outgoing_request
