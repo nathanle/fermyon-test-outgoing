@@ -24,7 +24,7 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
     let region_vec = vec!["us-east-1", "us-southeast-1"];
     */
     //for (url_i, region_item) in url_vec.iter().zip(region_vec.iter()) {
-    let url_i = "https://us-us-east-1.linodeobjects.com";
+    let url_i = "https://us-east-1.linodeobjects.com";
     let region_item = "us-east-1";
     match borrowed_method {
         Method::Put => {
