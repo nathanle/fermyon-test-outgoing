@@ -28,8 +28,9 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
     let region_item = "us-east-1";
     match borrowed_method {
         Method::Put => {
+            println!("{:#?}", headers.iter());
             let Some(url) = headers.iter().find_map(|(k, v)| {
-                (k == "url")
+                (k == "spin-full-url")
                     .then_some(v)
                     .and_then(|v| std::str::from_utf8(v).ok())
                     .and_then(|v| Url::parse(v).ok())
@@ -39,8 +40,6 @@ async fn handle_request(request: IncomingRequest, response_out: ResponseOutparam
                 bad_request(response_out);
                 return;
             };
-
-            println!("{:#?}", url);
 
             //let uri_components = s3::url_parse(url);
             let path_filename = format!("{}{}", url.re_path, url.re_filename);

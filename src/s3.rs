@@ -50,6 +50,7 @@ pub fn get_captures(re: Regex, data: &str) -> regex::Captures<'_> {
 }
 
 pub fn url_parse(url: Url) -> Option<UrlComponents> {
+    println!("Url from in s3 module: {:?}", url);
     let re = get_url_regex(r"^([a-z][a-z0-9+\-.]*://([^/?#]+)?)?([a-z0-9\-._~%!$&'()*+,;=:@/]*)");
     let path_re = get_url_regex(r"^([/\S]*[/]{1})(.*)");
     let u = url.to_owned().to_string();
